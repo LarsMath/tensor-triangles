@@ -9,7 +9,6 @@ planted := true;
 printf "q: %o, n: %o\n", q, n;
 F := GF(q);
 
-for _ in [1..10] do
 // =================================== Find an instance with triangle =======================================
 
 R<[vars]> := PolynomialRing(F, 3*(n-3), "grevlex");
@@ -157,7 +156,5 @@ Bs := Matrix([(i le 3 select [s[j+3*(i-1) + 9 + n*(n-3)] : j in [1..3]] else [0,
 // print "Found:", A_phi * As * A_psi^(-1);
 // print "Actual solution:", A;
 print "Time since instance found:", Cputime() - start_time;
-
-end for;
 
 exit;
