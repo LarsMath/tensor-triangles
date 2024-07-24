@@ -3,46 +3,79 @@ function Antisymmetrize(F, n, phi)
 end function;
 
 n := 13;
-q := 29;
+q := 2^32 - 5;
+planted := true;
 
 printf "q: %o, n: %o\n", q, n;
 F := GF(q);
 
+for _ in [1..10] do
 // =================================== Find an instance with triangle =======================================
 
-R1<[vars]> := PolynomialRing(F, 3*(n-3), "grevlex");
+R<[vars]> := PolynomialRing(F, 3*(n-3), "grevlex");
 
 u := [1,0,0] cat vars[1..n-3];
 v := [0,1,0] cat vars[n-2..2*n-6];
 w := [0,0,1] cat vars[2*n-5..3*n-9];
 
+if not planted then
+    // We have to make sure that the orbit of phi has a triangle and that for both phi and psi the triangle does not intersect with the x1=x2=x3=0 hyperplane
+    // Note that if we really want to break an instance we could lose the not intersecting with x1=x2=x3=0 hyperplane constraint
+    count := 0;
+    while true do
+        count +:=1;
+        phi := Antisymmetrize(F, n, [[[Random(F) : _ in [1..n]] : _ in [1..n]] : _ in [1..n]]);
 
-// We have to make sure that the orbit of phi has a triangle and that for both phi and psi the triangle does not intersect with the x1=x2=x3=0 hyperplane
-// Note that if we really want to break an instance we could lose the not intersecting with x1=x2=x3=0 hyperplane constraint
-count := 0;
-while true do
-    count +:=1;
-    phi := Antisymmetrize(F, n, [[[Random(F) : _ in [1..n]] : _ in [1..n]] : _ in [1..n]]);
+        system := [&+[phi[i][j][l] * v[i] * w[j] : i in [1..n], j in [1..n]] : l in [1..n]];
+        system cat:=[&+[phi[i][j][l] * w[i] * u[j] : i in [1..n], j in [1..n]] : l in [1..n]];
+        system cat:=[&+[phi[i][j][l] * u[i] * v[j] : i in [1..n], j in [1..n]] : l in [1..n]];
 
-    system := [&+[phi[i][j][l] * v[i] * w[j] : i in [1..n], j in [1..n]] : l in [1..n]];
-    system cat:=[&+[phi[i][j][l] * w[i] * u[j] : i in [1..n], j in [1..n]] : l in [1..n]];
-    system cat:=[&+[phi[i][j][l] * u[i] * v[j] : i in [1..n], j in [1..n]] : l in [1..n]];
-
-    if VarietySize(Ideal(system)) eq 1 then
-        A := Random(GL(n, F));
-        A := Matrix(F, n, n, [[A[i][j] : i in [1..n]] : j in [1..n]]);
-        psi := [&+[A[i][j] * (Transpose(A) * phi[i] * A) : i in [1..n]] : j in [1..n]];
-        system := [&+[psi[i][j][l] * v[i] * w[j] : i in [1..n], j in [1..n]] : l in [1..n]];
-        system cat:=[&+[psi[i][j][l] * w[i] * u[j] : i in [1..n], j in [1..n]] : l in [1..n]];
-        system cat:=[&+[psi[i][j][l] * u[i] * v[j] : i in [1..n], j in [1..n]] : l in [1..n]];
         if VarietySize(Ideal(system)) eq 1 then
+            A := Random(GL(n, F));
+            A := Matrix(F, n, n, [[A[i][j] : i in [1..n]] : j in [1..n]]);
+            psi := [&+[A[i][j] * (Transpose(A) * phi[i] * A) : i in [1..n]] : j in [1..n]];
+            system := [&+[psi[i][j][l] * v[i] * w[j] : i in [1..n], j in [1..n]] : l in [1..n]];
+            system cat:=[&+[psi[i][j][l] * w[i] * u[j] : i in [1..n], j in [1..n]] : l in [1..n]];
+            system cat:=[&+[psi[i][j][l] * u[i] * v[j] : i in [1..n], j in [1..n]] : l in [1..n]];
+            if VarietySize(Ideal(system)) eq 1 then
+                break;
+            end if;
+        end if;
+    end while;
+
+    sol := Eltseq(A) cat Eltseq(A^(-1));
+    print "Found an instance with a triangle in", count, "tries";
+else 
+    while true do
+        phi_0 := Antisymmetrize(F, n, [[[Random(F) : _ in [1..n]] : _ in [1..n]] : _ in [1..n]]);
+        for i in [1..3] do
+            for j in [1..3] do
+                for k in [1..n] do
+                    phi_0[i][j][k] := 0;
+                    phi_0[k][i][j] := 0;
+                    phi_0[j][k][i] := 0;
+                end for;
+            end for;
+        end for;
+
+        A_0 := Random(GL(n, F));
+        A := Random(GL(n, F));
+        
+        T_phi := Transpose(EchelonForm(Transpose(A_0^(-1) * Matrix(F, n, 3, [[i eq j select 1 else 0 : j in [1..3]] : i in [1..n]]))));
+        T_psi := Transpose(EchelonForm(Transpose(A^(-1) * T_phi)));
+
+        if &and[T_phi[i][j] eq (i eq j select 1 else 0) and T_psi[i][j] eq T_phi[i][j] : j in [1..3], i in [1..3]] then
             break;
         end if;
-    end if;
-end while;
 
-sol := Eltseq(A) cat Eltseq(A^(-1));
-print "Found an instance with a triangle in", count, "tries";
+    end while;
+
+    phi := [&+[A_0[i][j] * (Transpose(A_0) * phi_0[i] * A_0) : i in [1..n]] : j in [1..n]];
+    psi := [&+[A[i][j] * (Transpose(A) * phi[i] * A) : i in [1..n]] : j in [1..n]];
+    sol := Eltseq(A) cat Eltseq(A^(-1));
+    print "Planted a triangle";
+end if;
+
 
 start_time := Cputime();
 
@@ -121,8 +154,10 @@ s := Variety(Ideal(GroebnerBasis(system, 6)))[1];
 As := Matrix([(i le 3 select [s[j+3*(i-1)] : j in [1..3]] else [0,0,0]) cat [s[j + (n-3)*(i-1) + 9] : j in [1..n-3]] : i in [1..n]]);
 Bs := Matrix([(i le 3 select [s[j+3*(i-1) + 9 + n*(n-3)] : j in [1..3]] else [0,0,0]) cat [s[j + (n-3)*(i-1) + 9 + n*(n-3) + 9] : j in [1..n-3]] : i in [1..n]]);
 
-print "Found:", A_phi * As * A_psi^(-1);
-print "Actual solution:", A;
+// print "Found:", A_phi * As * A_psi^(-1);
+// print "Actual solution:", A;
 print "Time since instance found:", Cputime() - start_time;
+
+end for;
 
 exit;
