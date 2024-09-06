@@ -2,8 +2,9 @@ load "../tools.m";
 
 q := 29;
 n := 13;
+
 dx := 2;
-dy := 2;
+dy := 1;
 dz := 1;
 
 printf "n: %o\tq: %o\tdx, dy, dz: %o, %o, %o\n", n, q, dx, dy, dz;

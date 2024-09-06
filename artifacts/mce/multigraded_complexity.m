@@ -53,3 +53,5 @@ for n in [26,35,45] do
 	monomials, d_ff := TrilinearXLComplexity(hs, ms, precision);
     print "d_ff  ", n, m, k, ChangePrecision(Log(2, n*m*monomials^2),4);//, "d_ff:  ", d_ff;
 end for;
+
+exit;

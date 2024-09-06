@@ -23,3 +23,5 @@ for n in [13, 20, 25] do
 	monomials, d_ff := TrilinearXLComplexity(hs, ms, precision);
     print n, "d_ff  ", ChangePrecision(Log(2, density*monomials^2),4);//, "d_ff  :", d_ff;
 end for;
+
+exit;
